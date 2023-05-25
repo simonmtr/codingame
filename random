@@ -1,0 +1,30 @@
+monte carlo
+``` c++
+Random rnd;
+Action action;
+Entity myself;
+// If I am grabbing a snaffle...
+if (myself.status == Status::Grab) {
+    // Throw at a random angle with a random strength.
+    action.type = ActionType::Throw;
+    action.thrust = rnd.getInt(MAX_THROW_THRUST + 1);
+    action.dest = myself.pos + Vec2::fromAngle(rnd.getDouble() * 2 * M_PI) * 1000;
+} else {
+    // Do the same for moving at a random destination.
+}
+```
+
+weighted:
+``` c++
+Random rnd;
+Action action;
+Entity myself;
+// If I am grabbing a snaffle...
+if (myself.status == Status::Grab) {
+    if (rnd.getDouble() < 0.5) {
+        // 50% chance of throwing at a random angle and thrust, just like Monte Carlo.
+    } else {
+        // 50% chance of throwing directly at enemy goal, because it's generally a good thing to do.
+    }
+}
+```
