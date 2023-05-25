@@ -14,71 +14,73 @@ using namespace std;
 /* DIJSKSTRA*/
 
 // Given an Adjacency List, find all shortest paths from "start" to all other vertices.
-vector<pair<int, int>> DijkstraSP(vector<vector<pair<int, int>>> &adjList, int &start)
+vector<int> DijkstraSP(vector<vector<pair<int, int>>> &adjList, int &start)
 {
-    cout << "\nGetting the shortest path from " << start << " to all other nodes.\n";
-    vector<pair<int, int>> dist; // First int is dist, second is the previous node.
+    cerr << "\nGetting the shortest path from " << start << " to all other nodes.\n"
+         << endl;
+    vector<int> dist;
 
     // Initialize all source->vertex as infinite.
     int n = adjList.size();
     for (int i = 0; i < n; i++)
     {
-        dist.push_back(make_pair(1000000007, i)); // Define "infinity" as necessary by constraints.
+        dist.push_back(1000000007); // Define "infinity" as necessary by constraints.
     }
-
     // Create a PQ.
     priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
-
     // Add source to pq, where distance is 0.
     pq.push(make_pair(start, 0));
-    dist[start] = make_pair(0, start);
-    ;
-
+    dist[start] = 0;
     // While pq isn't empty...
     while (pq.empty() == false)
     {
         // Get min distance vertex from pq. (Call it u.)
         int u = pq.top().first;
         pq.pop();
-
-        // Visit all of u's friends. For each one (called v)....
+        // Visit all of u's friends. For each one (called v)
         for (int i = 0; i < adjList[u].size(); i++)
         {
             int v = adjList[u][i].first;
             int weight = adjList[u][i].second;
-
-            // If the distance to v is shorter by going through u...
-            if (dist[v].first > dist[u].first + weight)
+            // If the distance to v is shorter by going through u
+            if (dist[v] > dist[u] + weight)
             {
                 // Update the distance of v.
-                dist[v].first = dist[u].first + weight;
-                // Update the previous node of v.
-                dist[v].second = u;
+                dist[v] = dist[u] + weight;
                 // Insert v into the pq.
-                pq.push(make_pair(v, dist[v].first));
+                pq.push(make_pair(v, dist[v]));
             }
         }
     }
 
     return dist;
 }
-void PrintShortestPath(vector< pair<int, int> > &dist, int &start)
+void PrintShortestPath_steps(vector<int> &dist, int &start)
     {
     cerr << "\nPrinting the shortest paths for node " << start << ".\n" << endl;
     for(int i = 0; i < dist.size(); i++)
         {
-        cerr << "The distance from node " << start << " to node " << i << " is: " << dist[i].first << endl;
+        cerr << "The distance from node " << start << " to node " << i << " is: " << dist[i] << endl;
         
         int currnode = i;
         cerr << "The path is: " << currnode << endl;
         while(currnode != start)
             {
-            currnode = dist[currnode].second;
+            currnode = dist[currnode];
             cerr << " <- " << currnode << endl;
             }
         cerr << endl << endl;
         }
     }
+
+void PrintShortestPath(vector<int> &dist, int &start)
+{
+    cerr << "\nPrinting the shortest paths for node " << start << ".\n";
+    for (int i = 0; i < dist.size(); i++)
+    {
+        cerr << "The distance from node " << start << " to node " << i << " is: " << dist[i] << endl;
+    }
+}
 
 /* ------- */
 
@@ -192,22 +194,23 @@ int main()
     }
 
     // all distance to my base
-    vector< pair<int, int> > home_base_dist = DijkstraSP(adjList, my_base);
+    vector<int> home_base_dist = DijkstraSP(adjList, my_base);
     for (int i = 0; i < egg_cells.size(); i++)
     {
-        // egg_cells.at(i).distance_to_home_base = home_base_dist[egg_cells.at(i).index];
+        egg_cells.at(i).distance_to_home_base = home_base_dist[egg_cells.at(i).index];
     }
     for (int i = 0; i < crystal_cells.size(); i++)
     {
-        // crystal_cells.at(i).distance_to_home_base = home_base_dist[crystal_cells.at(i).index];
+        crystal_cells.at(i).distance_to_home_base = home_base_dist[crystal_cells.at(i).index];
     }
     std::sort(egg_cells.begin(), egg_cells.end(), less_than_key());
     std::sort(crystal_cells.begin(), crystal_cells.end(), less_than_key());
 
     Cell test_cell = egg_cells.back();
     cerr << test_cell.initial_resources << endl;
-    // cerr << "distance from base to " << test_cell.index << "with dtb " << test_cell.distance_to_home_base << home_base_dist[test_cell.index] << endl;
+    cerr << "distance from base to " << test_cell.index << "with dtb " << test_cell.distance_to_home_base << " is " << home_base_dist[test_cell.index] << endl;
     PrintShortestPath(home_base_dist, my_base);
+    PrintShortestPath_steps(home_base_dist, my_base);
 
     for (int i = 0; i < number_of_bases; i++)
     {
