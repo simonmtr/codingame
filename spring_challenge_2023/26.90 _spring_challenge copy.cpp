@@ -95,15 +95,16 @@ struct Cell
     int initial_resources;
     int distance_to_home_base;
     vector<int> route_to_home_base;
-    vector<pair<int, int>> distance_to_other_cells;
-    Cell(int index, int type, int initial_resources, int distance_to_home_base, vector<int> route_to_home_base, vector<pair<int, int>> distance_to_other_cells)
+    int index_of_closest_important_node;
+    Cell(int index, int type, int initial_resources, int distance_to_home_base, int index_of_closest_important_node, vector<int> route_to_home_base)
     {
         this->index = index;
         this->initial_resources = initial_resources;
         this->type = type;
         this->distance_to_home_base = distance_to_home_base;
         this->route_to_home_base = route_to_home_base;
-        this->distance_to_other_cells = distance_to_other_cells;
+        this->index_of_closest_important_node = index_of_closest_important_node;
+        ;
     }
     Cell() {}
 };
@@ -124,7 +125,6 @@ struct sort_list_dthb
 
 int main()
 {
-
     int roundcounter = 0;
     vector<Cell> crystal_cells = {};
     vector<int> crystal_indexes = {};
@@ -145,11 +145,6 @@ int main()
         adjList.push_back(row);
     }
     vector<int> adj[V];
-    /*all dijsktra*/
-    vector<Cell> all_cells;
-    vector<vector<pair<int, int>>> all_dist;
-
-    /*END*/
     cin.ignore();
     for (int i = 0; i < number_of_cells; i++)
     {
@@ -188,37 +183,17 @@ int main()
             adjList[i].push_back(make_pair(neigh_5, 1));
         }
         cin.ignore();
-
-        all_cells.push_back(Cell(i, type, initial_resources, 0, {}, {}));
-
         if (type == 2)
         {
-            crystal_cells.push_back(Cell(i, type, initial_resources, 0, {}, {}));
+            crystal_cells.push_back(Cell(i, type, initial_resources, 0, 0, {}));
             crystal_indexes.push_back(i);
         }
         else if (type == 1)
         {
-            egg_cells.push_back(Cell(i, type, initial_resources, 0, {}, {}));
+            egg_cells.push_back(Cell(i, type, initial_resources, 0, 0, {}));
             egg_indexes.push_back(i);
         }
     }
-
-    /* create distance list for each cell*/
-    // cerr << "running dijkstra for all" << endl;
-    for (int i = 0; i < all_cells.size(); i++)
-    {
-        vector<pair<int, int>> dist = DijkstraSP(adjList, all_cells.at(i).index);
-        all_dist.push_back(dist);
-        all_cells.at(i).distance_to_other_cells = dist;
-    }
-    // cerr << "DONE running dijkstra for all" << endl;
-    // int cell_to_check = 9;
-    // for (int i = 0; i < all_cells.at(cell_to_check).distance_to_other_cells.size(); i++)
-    // {
-    //     pair<int, vector<int>> distance_path = PrintShortestPath_both(all_cells.at(9).distance_to_other_cells, cell_to_check, all_cells.at(i).index);
-    //     int length_of_path = distance_path.first;
-    //     cerr << cell_to_check << " to " << i << " = " << length_of_path << endl;
-    // }
 
     int number_of_bases;
     cin >> number_of_bases;
@@ -228,7 +203,7 @@ int main()
         int my_base_index;
         cin >> my_base_index;
         cin.ignore();
-        my_base = my_base_index; // TODO when more bases
+        my_base = my_base_index;
     }
 
     // all distance to my base
@@ -348,12 +323,6 @@ int main()
 
         while (target_route.size() < my_ants_total)
         {
-            // cerr << "WHILE " << my_ants_total << " " << target_route.size() << endl;
-            // 1. no target_route -> target cell has to be closest to home base
-            // 2. find nearest cell to route to
-            // 3. find shortest path from my base or one of the cells in current route
-            // 4. add this path to target_route
-
             // first turn
             if (target_route.size() == 0)
             {
@@ -370,126 +339,90 @@ int main()
                 // cerr << "first step to " << target_route.at(0) << endl;
                 continue;
             }
+            // cerr << "finding next step" << endl;
+
             // 2.
-            vector<pair<int, int>> last_cell_dist = DijkstraSP(adjList, target_route.at(0));
             int nearest_cell_index = my_base;
             Cell nearest_cell = Cell();
             int start_to_nearest_cell_index = 10000;
             int temp_min_distance = 10000;
+            // TODO: FOR EACH CELL IN THE TARGET_ROUTE, DO THE FOLLOWING
+            // for (int i = 0; i < target_route.size(); i++)
+            // {
+            // cerr << i << endl;
+            vector<pair<int, int>> last_cell_dist = DijkstraSP(adjList, target_route.at(0));
+
             for (int i = 0; i < egg_cells.size(); i++)
             {
-                Cell current_iteration_egg_cell = egg_cells.at(i);
-                bool already_visited = find(target_route.begin(), target_route.end(), current_iteration_egg_cell.index) != target_route.end(); // TODO
-                                                                                                                                               // cerr << "already visited:" << current_iteration_egg_cell.index << " - " << already_visited << endl;
-                if (!already_visited)
+                bool already_visited = find(target_route.begin(), target_route.end(), egg_cells.at(i).index) != target_route.end(); // TODO
+                // cerr << "already visited:" << egg_cells.at(i).index << " - " << already_visited << endl;
+                if (egg_cells.at(i).index != target_route.at(0) && !already_visited)
                 {
-                    /*
-                    PLAN: (ISSUE=make sure path to home base is there)
-                    1. for each cell in our current path (could be home cell)
-                    2. check if shortest path is there
-                    3. if yes update path
-                    4. optional: update weights of path to home base
-                    */
-                    int current_shortest_path_lenght = 1000000;
-                    vector<int> current_shortest_path_route;
-                    for (int j = 0; j < target_route.size(); j++) // for each cell in current path
-                    {
-                        int index_of_target_route_cell = target_route.at(j); // get cell index
-                        // get shortest paths for this cell in path to current egg cell
-                        pair<int, vector<int>> distance_path = PrintShortestPath_both(all_cells.at(index_of_target_route_cell).distance_to_other_cells, index_of_target_route_cell, current_iteration_egg_cell.index);
-
-                        int length_of_path = distance_path.first; // shortest path
-                        if (length_of_path < current_shortest_path_lenght)
-                        {
-                            current_shortest_path_lenght = length_of_path;
-                            current_shortest_path_route = distance_path.second;
-                        }
-
-                        nearest_cell_index = current_iteration_egg_cell.index;
-                        nearest_cell = current_iteration_egg_cell;
-                        start_to_nearest_cell_index = target_route.at(0);
-                        temp_min_distance = distance_path.first;
-                    }
-                    
-                    // // debug
-                    // cerr << "shortest from " << current_iteration_egg_cell.index << "to target_route is" << shortest << "with path:" << endl;
-                    // for (int i = 0; i < shortest_path2.size(); i++)
-                    // {
-                    //     cerr << shortest_path2.at(i) << "->" << endl;
-                    // }
-                    // // END
-
-                    // TODO IMPROVE: target could be home base
-                    pair<int, vector<int>> distance_path = PrintShortestPath_both(last_cell_dist, target_route.at(0), current_iteration_egg_cell.index);
+                    pair<int, vector<int>> distance_path = PrintShortestPath_both(last_cell_dist, target_route.at(0), egg_cells.at(i).index);
                     if (distance_path.first != 0 && distance_path.first <= temp_min_distance)
                     {
-                        if ((distance_path.first == temp_min_distance && current_iteration_egg_cell.initial_resources > nearest_cell.initial_resources) || distance_path.first < temp_min_distance)
+                        if ((distance_path.first == temp_min_distance && egg_cells.at(i).initial_resources > nearest_cell.initial_resources) || distance_path.first < temp_min_distance)
                         {
-                            nearest_cell_index = current_iteration_egg_cell.index;
-                            nearest_cell = current_iteration_egg_cell;
+                            nearest_cell_index = egg_cells.at(i).index;
+                            nearest_cell = egg_cells.at(i);
                             start_to_nearest_cell_index = target_route.at(0);
                             temp_min_distance = distance_path.first;
                         }
                     }
-
-                    pair<int, vector<int>> distance_path_home = PrintShortestPath_both(home_base_dist, my_base, current_iteration_egg_cell.index);
-                    if (distance_path_home.first != 0 && distance_path_home.first <= temp_min_distance)
+                }
+                pair<int, vector<int>> distance_path_home = PrintShortestPath_both(home_base_dist, my_base, egg_cells.at(i).index);
+                if (distance_path_home.first != 0 && distance_path_home.first <= temp_min_distance && !already_visited)
+                {
+                    if ((distance_path_home.first == temp_min_distance && egg_cells.at(i).initial_resources > nearest_cell.initial_resources) || distance_path_home.first < temp_min_distance)
                     {
-                        if ((distance_path_home.first == temp_min_distance && current_iteration_egg_cell.initial_resources > nearest_cell.initial_resources) || distance_path_home.first < temp_min_distance)
-                        {
-                            nearest_cell_index = current_iteration_egg_cell.index;
-                            nearest_cell = current_iteration_egg_cell;
-                            start_to_nearest_cell_index = my_base;
-                            temp_min_distance = distance_path_home.first;
-                        }
+                        nearest_cell_index = egg_cells.at(i).index;
+                        nearest_cell = egg_cells.at(i);
+                        start_to_nearest_cell_index = my_base;
+                        temp_min_distance = distance_path_home.first;
                     }
                 }
             }
             for (int i = 0; i < crystal_cells.size(); i++)
             {
-                Cell current_iteration_crystal_cell = crystal_cells.at(i);
-
-                bool already_visited = find(target_route.begin(), target_route.end(), current_iteration_crystal_cell.index) != target_route.end();
-                if (!already_visited)
+                bool already_visited = find(target_route.begin(), target_route.end(), crystal_cells.at(i).index) != target_route.end();
+                if (crystal_cells.at(i).index != target_route.at(0) && !already_visited)
                 {
-                    pair<int, vector<int>> distance_path = PrintShortestPath_both(last_cell_dist, target_route.at(0), current_iteration_crystal_cell.index);
+                    pair<int, vector<int>> distance_path = PrintShortestPath_both(last_cell_dist, target_route.at(0), crystal_cells.at(i).index);
                     if (distance_path.first != 0 && distance_path.first <= temp_min_distance) // todo: check for equal also, if equal and eggfocus is not on -> prioritize this
                     {
                         if (
-                            (distance_path.first == temp_min_distance && nearest_cell.type == 2 && current_iteration_crystal_cell.initial_resources > nearest_cell.initial_resources) || (distance_path.first < temp_min_distance) || !(nearest_cell.type == 1 && egg_focus && temp_min_distance == distance_path.first))
+                            (distance_path.first == temp_min_distance && nearest_cell.type == 2 && crystal_cells.at(i).initial_resources > nearest_cell.initial_resources) || (distance_path.first < temp_min_distance) || !(nearest_cell.type == 1 && egg_focus && temp_min_distance == distance_path.first))
                         {
-                            nearest_cell_index = current_iteration_crystal_cell.index;
-                            nearest_cell = current_iteration_crystal_cell;
+                            nearest_cell_index = crystal_cells.at(i).index;
+                            nearest_cell = crystal_cells.at(i);
                             start_to_nearest_cell_index = target_route.at(0);
                             temp_min_distance = distance_path.first;
                         }
                     }
-
-                    pair<int, vector<int>> distance_path_home2 = PrintShortestPath_both(home_base_dist, my_base, current_iteration_crystal_cell.index);
-                    if (distance_path_home2.first != 0 && distance_path_home2.first <= temp_min_distance)
+                }
+                pair<int, vector<int>> distance_path_home2 = PrintShortestPath_both(home_base_dist, my_base, crystal_cells.at(i).index);
+                if (distance_path_home2.first != 0 && distance_path_home2.first <= temp_min_distance && !already_visited)
+                {
+                    if (
+                        (distance_path_home2.first == temp_min_distance && nearest_cell.type == 2 && crystal_cells.at(i).initial_resources > nearest_cell.initial_resources) || (distance_path_home2.first < temp_min_distance) || !(nearest_cell.type == 1 && egg_focus && temp_min_distance == distance_path_home2.first))
                     {
-                        if (
-                            (distance_path_home2.first == temp_min_distance && nearest_cell.type == 2 && current_iteration_crystal_cell.initial_resources > nearest_cell.initial_resources) || (distance_path_home2.first < temp_min_distance) || !(nearest_cell.type == 1 && egg_focus && temp_min_distance == distance_path_home2.first))
-                        {
-                            nearest_cell_index = current_iteration_crystal_cell.index;
-                            nearest_cell = current_iteration_crystal_cell;
-                            start_to_nearest_cell_index = my_base;
-                            temp_min_distance = distance_path_home2.first;
-                        }
+                        nearest_cell_index = crystal_cells.at(i).index;
+                        nearest_cell = crystal_cells.at(i);
+                        start_to_nearest_cell_index = my_base;
+                        temp_min_distance = distance_path_home2.first;
                     }
                 }
             }
+            // }
+
             if (start_to_nearest_cell_index != 10000)
             {
                 for (int i = 0; i < nearest_cell.route_to_home_base.size(); i++)
                 {
                     target_route.push_back(nearest_cell.route_to_home_base.at(i));
                 }
-                if (nearest_cell.index == 11)
-                {
-                    cerr << "going to" << nearest_cell.index << " from " << start_to_nearest_cell_index << endl;
-                    cerr << "second: going to" << nearest_cell.index << " from " << start_to_nearest_cell_index << endl;
-                }
+                // cerr << "going to" << nearest_cell.index << " from " << start_to_nearest_cell_index << endl;
+                // cerr << "second: going to" << nearest_cell.index << " from " << start_to_nearest_cell_index << endl;
             }
             else
             {
@@ -499,6 +432,46 @@ int main()
                 break;
             }
         }
+
+        /* WHAT DOES THIS CODE DO????
+        IS IT NEEDED???*/
+        // // check if current route is in target route
+        // if (target_route.size() == 0)
+        // { // first turn
+        //     target_route = sample_cell.route_to_home_base;
+        // }
+        // else if (target_route.at(0) == sample_cell.route_to_home_base.at(0))
+        // {
+        //     cerr << "route in target route" << endl;
+        // }
+        // else
+        // {
+        //     cerr << "route NOT in target route" << endl;
+        //     vector<int> temp_route = sample_cell.route_to_home_base;
+        //     for (int i = 0; i < target_route.size(); i++)
+        //     {
+        //         temp_route.push_back(target_route.at(i));
+        //     }
+        //     target_route = temp_route;
+        //     // cerr << target_route.at(0) << " - " << sample_cell.route_to_home_base.at(0) << endl;
+        // }
+
+        // check if enough ants to sent to next point
+        // if (target_route.size() < my_ants_total)
+        // {
+        //     // TODO: increase routes
+        //     // at least one ant available for each cell in route -> route established to home
+        //     // todo: set new sample cell, keep old route
+        //     if (target_route.size() == 0)
+        //     {
+        //         target_route = sample_cell.route_to_home_base;
+        //     }
+        //     else
+        //     {
+        //         // todo
+        //     }
+        // }
+        /* END OF CONFUSION*/
 
         string printstring = "";
         int goal_index = sample_cell.route_to_home_base.at(0);

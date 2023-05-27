@@ -370,6 +370,8 @@ int main()
                 // cerr << "first step to " << target_route.at(0) << endl;
                 continue;
             }
+            // cerr << "finding next step" << endl;
+
             // 2.
             vector<pair<int, int>> last_cell_dist = DijkstraSP(adjList, target_route.at(0));
             int nearest_cell_index = my_base;

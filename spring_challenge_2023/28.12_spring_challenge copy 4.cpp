@@ -23,7 +23,7 @@ vector<pair<int, int>> DijkstraSP(vector<vector<pair<int, int>>> &adjList, int &
     int n = adjList.size();
     for (int i = 0; i < n; i++)
     {
-        dist.push_back(make_pair(1000000007, i)); // Define "infinity" as necessary by constraints.
+        dist.push_back(make_pair(100007, i)); // Define "infinity" as necessary by constraints.
     }
 
     // Create a PQ.
