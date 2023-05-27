@@ -341,20 +341,13 @@ int main()
         // set sample cell
         bool enemy_ants_much_higher_than_mine = my_ants_total <= opp_ants_total;
         bool egg_focus = max_resources_start > 200 || enemy_ants_much_higher_than_mine;
-        // egg_focus = true;
-        vector<int> visited_end_nodes;
-
+        bool crystal_focus = false; // TODO IMPLEMENT
         int max_ants_per_field = 1; // gets changed once we have route to all important nodes
 
         while (target_route.size() < my_ants_total)
         {
-            // cerr << "WHILE " << my_ants_total << " " << target_route.size() << endl;
-            // 1. no target_route -> target cell has to be closest to home base
-            // 2. find nearest cell to route to
-            // 3. find shortest path from my base or one of the cells in current route
-            // 4. add this path to target_route
 
-            // first turn
+            // FIRST TURN
             if (target_route.size() == 0)
             {
                 if (egg_cells.size() != 0 && enemy_ants_much_higher_than_mine && egg_focus)
@@ -366,10 +359,65 @@ int main()
                     sample_cell = crystal_cells.at(0); // closest crystal to my base
                 }
                 target_route = sample_cell.route_to_home_base;
-                visited_end_nodes.push_back(target_route.at(0));
-                // cerr << "first step to " << target_route.at(0) << endl;
                 continue;
             }
+            // FIRST TURN END
+
+            bool all_important_edges_visited = true;
+            int current_shortest_path_length = 1000000;
+            vector<int> current_shortest_path_route;
+
+            for (int i = 0; i < egg_cells.size(); i++)
+            {
+                Cell current_iteration_egg_cell = egg_cells.at(i);
+                bool already_visited = find(target_route.begin(), target_route.end(), current_iteration_egg_cell.index) != target_route.end(); // TODO
+                                                                                                                                               // cerr << "already visited:" << current_iteration_egg_cell.index << " - " << already_visited << endl;
+                if (!already_visited)                                                                                                          // egg_cell not in route => not visited
+                {
+                    /*
+                    PLAN: (ISSUE=make sure path to home base is there)
+                    1. for each cell in our current path (could be home cell)
+                    2. check if shortest path is there
+                    3. if yes update path
+                    4. optional: update weights of path to home base
+                    */
+                    for (int j = 0; j < target_route.size(); j++) // for each cell in current route
+                    {
+                        int index_of_target_route_cell = target_route.at(j); // get cell index
+                        // get shortest paths for current egg cell to this cell in path
+                        Cell current_egg = all_cells.at(current_iteration_egg_cell.index); // update egg, because its different objects in all_cells and egg_cells
+                        pair<int, vector<int>> distance_path_from_egg_cell_to_route = PrintShortestPath_both(current_egg.distance_to_other_cells, current_iteration_egg_cell.index, index_of_target_route_cell);
+
+                        if (distance_path_from_egg_cell_to_route.first < current_shortest_path_length)
+                        {
+                            cerr << "found" << endl;
+                            cerr << distance_path_from_egg_cell_to_route.second.size() << endl;
+                            current_shortest_path_length = distance_path_from_egg_cell_to_route.first;
+                            current_shortest_path_route = distance_path_from_egg_cell_to_route.second;
+                            all_important_edges_visited = false;
+                        }
+                    }
+                }
+            }
+
+            if (!all_important_edges_visited) // not all eggs and crystals are on route
+            {
+                for (int i = 0; i < current_shortest_path_route.size(); i++)
+                {
+                    target_route.push_back(current_shortest_path_route.at(i));
+                }
+            }
+            else // all eggs and crystals are on route
+            {
+                // -> don't change the routes but increase the weights to max
+                // TODO IMPROVE: MAKE SMARTER: routes should have good better weight distribution
+                int max_ants_per_field = my_ants_total / target_route.size();
+                break;
+            }
+        }
+
+        if (0 == 1)
+        {
             // 2.
             vector<pair<int, int>> last_cell_dist = DijkstraSP(adjList, target_route.at(0));
             int nearest_cell_index = my_base;
@@ -410,7 +458,7 @@ int main()
                         start_to_nearest_cell_index = target_route.at(0);
                         temp_min_distance = distance_path.first;
                     }
-                    
+
                     // // debug
                     // cerr << "shortest from " << current_iteration_egg_cell.index << "to target_route is" << shortest << "with path:" << endl;
                     // for (int i = 0; i < shortest_path2.size(); i++)
