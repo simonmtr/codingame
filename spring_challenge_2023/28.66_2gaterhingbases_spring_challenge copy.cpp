@@ -356,8 +356,7 @@ int main()
 
         int my_score;
         int opp_score;
-        cin >> my_score >> opp_score;
-        cin.ignore();
+        cin >> my_score >> opp_score; cin.ignore();
         for (int i = 0; i < number_of_cells; i++)
         {
             int resources; // the current amount of eggs/crystals on this cell
@@ -365,6 +364,10 @@ int main()
             int opp_ants;  // the amount of opponent ants on this cell
             cin >> resources >> my_ants >> opp_ants;
             cin.ignore();
+            cerr << "resources on " << i << " are " << resources << endl;
+            cerr << "my_ants on " << i << " are " << my_ants << endl;
+            cerr << "opp_ants on " << i << " are " << opp_ants << endl;
+
             my_ants_total = my_ants_total + my_ants;
             opp_ants_total = opp_ants_total + opp_ants;
 
